@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-lb
+  name: nginx-lb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-lb
+  template:
+    metadata:
+      labels:
+        app: nginx-lb
+    spec:
+      containers:
+      - image: bharamicrosystems/nginx-lb
+        name: nginx-lb
+        resources:
+          requests:
+            cpu: 30m
+            memory: 500Mi
+          limits:
+            cpu: 100m
+            memory: 1000Mi
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: In
+                values:
+                - "true"
+      tolerations:
+      - key: "cloud.google.com/gke-preemptible"
+        operator: "Exists"
+        effect: "NoSchedule"
