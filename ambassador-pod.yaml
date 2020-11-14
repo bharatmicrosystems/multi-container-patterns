@@ -1,40 +1,29 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
+  name: ambassador-pod
   labels:
-    app: nginx-lb
-  name: nginx-lb
+    app: ambassador-app
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx-lb
-  template:
-    metadata:
-      labels:
-        app: nginx-lb
-    spec:
-      containers:
-      - image: bharamicrosystems/nginx-lb
-        name: nginx-lb
-        resources:
-          requests:
-            cpu: 30m
-            memory: 500Mi
-          limits:
-            cpu: 100m
-            memory: 1000Mi
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 1
-            preference:
-              matchExpressions:
-              - key: cloud.google.com/gke-preemptible
-                operator: In
-                values:
-                - "true"
-      tolerations:
-      - key: "cloud.google.com/gke-preemptible"
-        operator: "Exists"
-        effect: "NoSchedule"
+  volumes:
+  - name: shared
+    emptyDir: {}
+  containers:
+  - name: app-container-poller
+    image: yauritux/busybox-curl
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do curl 127.0.0.1:81 > /usr/share/nginx/html/index.html; sleep 10; done"]
+    volumeMounts:
+    - name: shared
+      mountPath: /usr/share/nginx/html
+  - name: app-container-server
+    image: nginx
+    ports:
+      - containerPort: 80
+    volumeMounts:
+    - name: shared
+      mountPath: /usr/share/nginx/html
+  - name: ambassador-container
+    image: bharamicrosystems/nginx-forward-proxy
+    ports:
+      - containerPort: 81

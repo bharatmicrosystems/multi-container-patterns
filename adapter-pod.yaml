@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: sidecar-pod
+  name: adapter-pod
   labels:
-    app: sidecar-app
+    app: adapter-app
 spec:
   volumes:
   - name: logs 
@@ -12,14 +12,16 @@ spec:
   - name: app-container
     image: alpine
     command: ["/bin/sh"]
-    args: ["-c", "while true; do date >> /var/log/index.html; sleep 2;done"]
+    args: ["-c", "while true; do date >> /var/log/app.log; sleep 2;done"]
     volumeMounts:
     - name: logs
       mountPath: /var/log
-  - name: log-exporter-sidecar
-    image: nginx
+  - name: log-adapter
+    image: alpine
+    command: ["/bin/sh"]
+    args: ["-c", "tail -f /var/log/app.log|sed -e 's/^/Date /' > /var/log/out.log"]
     ports:
       - containerPort: 80
     volumeMounts:
     - name: logs
-      mountPath: /usr/share/nginx/html
+      mountPath: /var/log
